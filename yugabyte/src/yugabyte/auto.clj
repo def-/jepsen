@@ -19,7 +19,7 @@
 
 (def dir
   "Where we unpack the Yugabyte package"
-  "/home/yugabyte")
+  "/root")
 
 (def master-log-dir  (str dir "/master/logs"))
 (def tserver-log-dir (str dir "/tserver/logs"))
@@ -37,7 +37,7 @@
 (extend-protocol OS
   Debian
   (install-python! [os]
-    (debian/install [:python2.7]))
+    (debian/install [:python3]))
 
   CentOS
   (install-python! [os]
@@ -72,11 +72,11 @@
   [test]
   (let [nodes (take (:replication-factor test)
                     (:nodes test))]
-    (assert (= (count nodes) (:replication-factor test))
-            (str "We need at least "
-                 (:replication-factor test)
-                 " nodes as masters, but test only has nodes: "
-                 (pr-str (:nodes test))))
+    ;(assert (= (count nodes) (:replication-factor test))
+    ;        (str "We need at least "
+    ;             (:replication-factor test)
+    ;             " nodes as masters, but test only has nodes: "
+    ;             (pr-str (:nodes test))))
     nodes))
 
 (defn master-node?
@@ -399,111 +399,122 @@
   []
   Auto
   (install! [db test]
-    (c/su
-      (c/cd dir
-            ; Post-install takes forever, so let's try and skip this on
-            ; subsequent runs
-            (let [url           (or (:url test) (get-download-url (:version test)))
-                  installed-url (get-installed-url)]
-              (when-not (= url installed-url)
-                (info "Replacing version" installed-url "with" url)
-                (install-python! (:os test))
-                (assert (re-find #"Python 2\.7"
-                                 (c/exec :python :--version (c/lit "2>&1"))))
-
-                (info "Installing tarball into" dir)
-                (cu/install-archive! url dir)
-                (c/su (let [post-install-script-path "./bin/post_install.sh"]
-                        (info "Post-install script")
-
-                        (assert (= (count (cu/ls post-install-script-path)) 1)
-                                "Post-install script does not exist!")
-                        (c/exec post-install-script-path)
-
-                        (c/exec :echo url :>> installed-url-file)
-                        (info "Done with setup"))))))))
+  ;  (c/su
+  ;    (c/cd dir
+  ;          ; Post-install takes forever, so let's try and skip this on
+  ;          ; subsequent runs
+  ;          (let [url           (or (:url test) (get-download-url (:version test)))
+  ;                installed-url (get-installed-url)]
+  ;            (when-not (= url installed-url)
+  ;              (info "Replacing version" installed-url "with" url)
+  ;              (install-python! (:os test))
+  ;              (assert (re-find #"Python 3"
+  ;                               (c/exec :python3 :--version (c/lit "2>&1"))))
+  ;
+  ;              (info "Installing tarball into" dir)
+  ;              (cu/install-archive! url dir)
+  ;              (c/su (let [post-install-script-path "./bin/post_install.sh"]
+  ;                      (info "Post-install script")
+  ;
+  ;                      (assert (= (count (cu/ls post-install-script-path)) 1)
+  ;                              "Post-install script does not exist!")
+  ;                      (c/exec post-install-script-path)
+  ;
+  ;                      (c/exec :echo url :>> installed-url-file)
+  ;                      (info "Done with setup"))))))))
+  )
 
   (configure! [db test node]
-    ; YB will explode after creating just a handful of tables if we don't raise
-    ; ulimits. This is sort of a hack; it won't take effect for the current
-    ; session, but will on the second and subsequent runs. We can't run
-    ; `ulimit` directly because the shell context doesn't carry over to
-    ; subsequent commands. Should write a subshell exec thing to handle this at
-    ; some point.
-    (c/su (c/exec :echo limits-conf :> "/etc/security/limits.d/jepsen.conf")))
+  ;  ; YB will explode after creating just a handful of tables if we don't raise
+  ;  ; ulimits. This is sort of a hack; it won't take effect for the current
+  ;  ; session, but will on the second and subsequent runs. We can't run
+  ;  ; `ulimit` directly because the shell context doesn't carry over to
+  ;  ; subsequent commands. Should write a subshell exec thing to handle this at
+  ;  ; some point.
+  ;  (c/su (c/exec :echo limits-conf :> "/etc/security/limits.d/jepsen.conf")))
+  )
 
   (start-master! [db test node]
-    (c/su (c/exec :mkdir :-p ce-master-log-dir)
-          (cu/start-daemon!
-            {:logfile ce-master-logfile
-             :pidfile ce-master-pidfile
-             :chdir   dir}
-            ce-master-bin
-            (ce-shared-opts node)
-            :--master_addresses (master-addresses test)
-            :--replication_factor (:replication-factor test)
-            (master-tserver-experimental-tuning-flags test)
-            (master-tserver-random-clock-skew test node)
-            (master-tserver-wait-on-conflict-flags test)
-            (master-api-opts (:api test) node)
-            )))
+  ;  (c/su (c/exec :mkdir :-p ce-master-log-dir)
+  ;        (cu/start-daemon!
+  ;          {:logfile ce-master-logfile
+  ;           :pidfile ce-master-pidfile
+  ;           :chdir   dir}
+  ;          ce-master-bin
+  ;          (ce-shared-opts node)
+  ;          :--master_addresses (master-addresses test)
+  ;          :--replication_factor (:replication-factor test)
+  ;          (master-tserver-experimental-tuning-flags test)
+  ;          (master-tserver-random-clock-skew test node)
+  ;          (master-tserver-wait-on-conflict-flags test)
+  ;          (master-api-opts (:api test) node)
+  ;          )))
+  )
 
   (start-tserver! [db test node]
-    (c/su (info "ulimit\n" (c/exec :ulimit :-a))
-          (c/exec :mkdir :-p ce-tserver-log-dir)
-          (cu/start-daemon!
-            {:logfile ce-tserver-logfile
-             :pidfile ce-tserver-pidfile
-             :chdir   dir}
-            ce-tserver-bin
-            (ce-shared-opts node)
-            :--tserver_master_addrs (master-addresses test)
-            ; Tracing
-            :--enable_tracing
-            :--rpc_slow_query_threshold_ms 1000
-            (master-tserver-experimental-tuning-flags test)
-            (master-tserver-random-clock-skew test node)
-            (master-tserver-wait-on-conflict-flags test)
-            (tserver-api-opts (:api test) node)
-            (tserver-read-committed-flags test)
-            (tserver-heartbeat-flags test)
-            )))
+  ;  (c/su (info "ulimit\n" (c/exec :ulimit :-a))
+  ;        (c/exec :mkdir :-p ce-tserver-log-dir)
+  ;        (cu/start-daemon!
+  ;          {:logfile ce-tserver-logfile
+  ;           :pidfile ce-tserver-pidfile
+  ;           :chdir   dir}
+  ;          ce-tserver-bin
+  ;          (ce-shared-opts node)
+  ;          :--tserver_master_addrs (master-addresses test)
+  ;          ; Tracing
+  ;          :--enable_tracing
+  ;          :--rpc_slow_query_threshold_ms 1000
+  ;          (master-tserver-experimental-tuning-flags test)
+  ;          (master-tserver-random-clock-skew test node)
+  ;          (master-tserver-wait-on-conflict-flags test)
+  ;          (tserver-api-opts (:api test) node)
+  ;          (tserver-read-committed-flags test)
+  ;          (tserver-heartbeat-flags test)
+  ;          )))
+  )
 
   (stop-master! [db]
-    (c/su (cu/stop-daemon! ce-master-pidfile)))
+  ;  (c/su (cu/stop-daemon! ce-master-pidfile)))
+  )
 
   (stop-tserver! [db]
-    (c/su (cu/stop-daemon! ce-tserver-pidfile))
-    (c/su (cu/grepkill! "postgres")))
+  ;  (c/su (cu/stop-daemon! ce-tserver-pidfile))
+  ;  (c/su (cu/grepkill! "postgres")))
+  )
 
   (wipe! [db]
-    (suppress-interrupted-exception
-      (c/su (c/exec :rm :-rf ce-data-dir))))
+  ;  (suppress-interrupted-exception
+  ;    (c/su (c/exec :rm :-rf ce-data-dir))))
+  )
 
   db/DB
   (setup! [db test node]
-    (suppress-interrupted-exception
-      (install! db test)
-      (configure! db test node)
-      (start! db test node)))
+  ;  (suppress-interrupted-exception
+  ;    (install! db test)
+  ;    (configure! db test node)
+  ;    (start! db test node)))
+  )
 
   (teardown! [db test node]
-    (suppress-interrupted-exception
-      (stop! db test node)
-      (wipe! db)))
+  ;  (suppress-interrupted-exception
+  ;    (stop! db test node)
+  ;    (wipe! db)))
+  )
 
   db/Primary
   (setup-primary! [this test node]
-    "Executed once on a first node in list (i.e. n1 by default) after per-node setup is done"
-    ; NOOP placeholder, can be used to initialize cluster for different APIs
-    )
+  ;  "Executed once on a first node in list (i.e. n1 by default) after per-node setup is done"
+  ;  ; NOOP placeholder, can be used to initialize cluster for different APIs
+  )
 
   db/LogFiles
   (log-files [_ _ _]
-    (concat [ce-master-logfile
-             ce-tserver-logfile]
-            (log-files-without-symlinks ce-master-log-dir)
-            (log-files-without-symlinks ce-tserver-log-dir))))
+  ;  (concat [ce-master-logfile
+  ;           ce-tserver-logfile]
+  ;          (log-files-without-symlinks ce-master-log-dir)
+  ;          (log-files-without-symlinks ce-tserver-log-dir))))
+  )
+)
 
 (defn running-masters
   "Returns a list of nodes where master process is running."

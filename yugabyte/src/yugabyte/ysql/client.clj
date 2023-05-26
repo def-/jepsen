@@ -19,7 +19,8 @@
 (def conn-isolation-level "Default isolation level for connections"
   Connection/TRANSACTION_SERIALIZABLE)
 
-(def ysql-port 5433)
+(def mz-port 32804)
+(def mz-system-port 32802)
 
 (def max-retry-attempts "Maximum number of attempts to be performed by with-retry" 30)
 (def max-delay-between-retries-ms "Maximum delay between retries for with-retry" 200)
@@ -28,15 +29,20 @@
   "Assemble a JDBC connection specification for a given Jepsen node."
   [node]
   {:dbtype         "postgresql"
-   :dbname         "postgres"
+   :dbname         "materialize"
    :classname      "org.postgresql.Driver"
    :host           (name node)
-   :port           ysql-port
-   :user           "postgres"
+   :port           mz-port
+   :currentSchema  "public"
+   :user           "materialize"
    :password       ""
    :loginTimeout   (/ default-timeout 1000)
    :connectTimeout (/ default-timeout 1000)
    :socketTimeout  (/ default-timeout 1000)})
+
+(defn db-conn
+  [node]
+  {:connection-uri        (str "postgres://materialize@" (name node) ":" mz-port "/materialize")})
 
 (defn- append-op-index
   "Append /* <:op-index> */ to a given SQL statement or its part,
@@ -69,6 +75,13 @@
    (update! conn (append-op-index op table) values where))
   ([conn table values where]
    (j/update! conn table values where {:timeout default-timeout})))
+
+(defn execute-notrans!
+  "Like jdbc execute!, but without a transaction."
+  ([op conn sql-params]
+   (execute-notrans! conn (append-op-index op sql-params)))
+  ([conn sql-params]
+   (j/execute! conn sql-params {:transaction? false :timeout default-timeout})))
 
 (defn execute!
   "Like jdbc execute!, but includes a default timeout and (optionally) :op-index comment."
@@ -112,13 +125,15 @@
                 (throw+ {:type :connection-timed-out
                          :node node})
                 (util/retry 0.1
+                            ;(println (j/get-connection (db-spec node)))
                             (let [spec  (db-spec node)
                                   conn  (j/get-connection spec)
                                   spec' (j/add-connection spec conn)]
-                              (.setTransactionIsolation conn conn-isolation-level)
+                              ; TODO: Revisit enabling serializable transaction isolation level
+                              ;(.setTransactionIsolation conn conn-isolation-level)
                               (assert spec')
-                              (assert (= (.getTransactionIsolation conn)
-                                         conn-isolation-level))
+                              ;(assert (= (.getTransactionIsolation conn)
+                              ;           conn-isolation-level))
                               spec'))))
 
 (defn close-conn

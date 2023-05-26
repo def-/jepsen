@@ -181,11 +181,11 @@
   "A partial test map with SSH options for a test running in Yugabyte's
   internal testing environment."
   []
-  {:ssh {:port                     54422
+  {:ssh {:port                     32805 ; docker port 8b98a95398cf 22
          :strict-host-key-checking false
-         :username                 "yugabyte"
+         :username                 "root"
          :private-key-path         (str (System/getenv "HOME")
-                                        "/.yugabyte/yugabyte-dev-aws-keypair.pem")}})
+                                        "/.ssh/id_rsa")}})
 
 (def trace-logging
   "Logging configuration for the test which sets up traces for queries."
