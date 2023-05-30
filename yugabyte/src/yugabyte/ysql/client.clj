@@ -4,6 +4,7 @@
             [clojure.pprint :refer [pprint]]
             [clojure.string :as str]
             [clojure.tools.logging :refer [info warn]]
+            [clojure.java.shell :refer [sh]]
             [jepsen.util :as util]
             [jepsen.control.net :as cn]
             [jepsen.client :as client]
@@ -19,8 +20,8 @@
 (def conn-isolation-level "Default isolation level for connections"
   Connection/TRANSACTION_SERIALIZABLE)
 
-(def mz-port 32804)
-(def mz-system-port 32802)
+(def mz-port (Integer/parseInt (str/trim-newline (:out (sh "bash" "-c" "docker port $(docker ps --quiet --filter=\"name=testdrive-materialized-1\") 6875 | grep \"0\\.0\\.0\\.0\" | sed -e \"s/0\\.0\\.0\\.0://\"")))))
+(def mz-system-port (Integer/parseInt (str/trim-newline (:out (sh "bash" "-c" "docker port $(docker ps --quiet --filter=\"name=testdrive-materialized-1\") 6877 | grep \"0\\.0\\.0\\.0\" | sed -e \"s/0\\.0\\.0\\.0://\"")))))
 
 (def max-retry-attempts "Maximum number of attempts to be performed by with-retry" 30)
 (def max-delay-between-retries-ms "Maximum delay between retries for with-retry" 200)

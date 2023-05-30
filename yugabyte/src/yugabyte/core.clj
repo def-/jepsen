@@ -3,6 +3,7 @@
   (:require [clojure.tools.logging :refer :all]
             [clojure.string :as str]
             [clojure.pprint :refer [pprint]]
+            [clojure.java.shell :refer [sh]]
             [jepsen.checker :as checker]
             [jepsen.client :as client]
             [jepsen.generator :as gen]
@@ -181,7 +182,7 @@
   "A partial test map with SSH options for a test running in Yugabyte's
   internal testing environment."
   []
-  {:ssh {:port                     32805 ; docker port 8b98a95398cf 22
+  {:ssh {:port (Integer/parseInt (str/trim-newline (:out (sh "bash" "-c" "docker port $(docker ps --quiet --filter=\"name=testdrive-materialized-1\") 22 | grep \"0\\.0\\.0\\.0\" | sed -e \"s/0\\.0\\.0\\.0://\""))))
          :strict-host-key-checking false
          :username                 "root"
          :private-key-path         (str (System/getenv "HOME")
