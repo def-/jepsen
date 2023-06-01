@@ -43,7 +43,7 @@
   because YB can't do `create ... if not exists` properly."
   [conn table]
   (try
-    (c/execute! conn (j/create-table-ddl table
+    (c/execute-notrans! conn (j/create-table-ddl table
                                          [[:dummy :int]
                                           [:v :int :default "0"]]
                                          {:conditional? true}))

@@ -15,7 +15,7 @@
   c/YSQLYbClient
 
   (setup-cluster! [this test c conn-wrapper]
-    (c/execute! c (j/create-table-ddl table-name [[:k1 :int]
+    (c/execute-notrans! c (j/create-table-ddl table-name [[:k1 :int]
                                                   [:k2 :int]
                                                   [:val :int]
                                                   ["PRIMARY KEY" "(k1, k2)"]])))

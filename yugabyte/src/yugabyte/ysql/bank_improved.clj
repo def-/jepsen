@@ -30,11 +30,11 @@
   c/YSQLYbClient
 
   (setup-cluster! [this test c conn-wrapper]
-    (c/execute! c
+    (c/execute-notrans! c
                 (j/create-table-ddl table-name
                                     [[:id :int "PRIMARY KEY"]
                                      [:balance :bigint]]))
-    (c/execute! c [(str "CREATE INDEX " table-index " ON " table-name " (id, balance)")])
+    (c/execute-notrans! c [(str "CREATE INDEX " table-index " ON " table-name " (id, balance)")])
     (c/with-retry
       (info "Creating accounts")
       (c/insert! c table-name

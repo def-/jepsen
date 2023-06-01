@@ -24,7 +24,7 @@
   c/YSQLYbClient
 
   (setup-cluster! [this test c conn-wrapper]
-    (c/execute! c (j/create-table-ddl table-name [[:id :int "PRIMARY KEY"]
+    (c/execute-notrans! c (j/create-table-ddl table-name [[:id :int "PRIMARY KEY"]
                                                   [:balance :bigint]]))
     (c/with-retry
       (info "Creating accounts")

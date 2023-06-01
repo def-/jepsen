@@ -17,11 +17,11 @@
   c/YSQLYbClient
 
   (setup-cluster! [this test c conn-wrapper]
-    (c/execute! c (j/create-table-ddl table-name [[:key :int "PRIMARY KEY"]
+    (c/execute-notrans! c (j/create-table-ddl table-name [[:key :int "PRIMARY KEY"]
                                                   [:key2 :int]
                                                   [:val :int]]))
 
-    (c/execute! c (str "CREATE INDEX " index-name " ON " table-name " (key2) INCLUDE (val)"))
+    (c/execute-notrans! c (str "CREATE INDEX " index-name " ON " table-name " (key2) INCLUDE (val)"))
     ; Right now it DOESN'T involve index - but we run it anyway
     ; (c/assert-involves-index c (long-fork-index-query [1 2 3]) index-name)
     )

@@ -78,7 +78,7 @@
   because YB can't do `create ... if not exists` properly."
   [conn table-name]
   (try
-    (c/execute! conn (j/create-table-ddl table-name
+    (c/execute-notrans! conn (j/create-table-ddl table-name
                                          [
                                          ;[:k :SERIAL]
                                          ;[:k :int]
