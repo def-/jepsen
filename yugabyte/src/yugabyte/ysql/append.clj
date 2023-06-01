@@ -58,9 +58,9 @@
 (defn append-primary!
   "Writes a key based on primary key."
   [conn table row col v]
-  (let [r (c/execute! conn [(str "update " table
-                                 " set " col " = CONCAT(" col ", ',', ?) "
-                                 "where k = ?") v row])]
+  (let [r (c/execute-notrans! conn [(str "update " table
+                                 " set " col " = CONCAT(" col ", ',', " (str v) ") "
+                                 "where k = " (str row))])]
     (when (= [0] r)
       ; No rows updated
       (c/execute! conn
@@ -83,9 +83,9 @@
 (defn append-secondary!
   "Writes a key based on a predicate over a secondary key, k2. Returns v."
   [conn table row col v]
-  (let [r (c/execute! conn [(str "update " table
-                                 " set " col " = CONCAT(" col ", ',', ?) "
-                                 "where (k2 * 2) - ? = ?") v row row])]
+  (let [r (c/execute-notrans! conn [(str "update " table
+                                 " set " col " = CONCAT(" col ", ',', " v ") "
+                                 "where (k2 * 2) - " (str row) " = " (str row))])]
     (when (= [0] r)
       ; No rows updated
       (c/execute! conn
@@ -116,7 +116,7 @@
          (map table-name)
          (map (fn [table]
                 (info "Creating table" table)
-                (c/execute! c (j/create-table-ddl
+                (c/execute-notrans! c (j/create-table-ddl
                                 table
                                 (into
                                   [;[:k :int "unique"]
@@ -131,10 +131,12 @@
   (invoke-op! [this test op c conn-wrapper]
     (let [txn      (:value op)
           use-txn? (< 1 (count txn))
-          txn'     (if use-txn?
-                     (j/with-db-transaction [c c {:isolation isolation}]
-                                            (mapv (partial mop! locking c test) txn))
-                     (mapv (partial mop! locking c test) txn))]
+          ; TODO: Revisit transaction usage here
+          ;txn'     (if use-txn?
+          ;           (j/with-db-transaction [c c {:isolation isolation}]
+          ;                                  (mapv (partial mop! locking c test) txn))
+          ;           (mapv (partial mop! locking c test) txn))]
+          txn' (mapv (partial mop! locking c test) txn)]
       (assoc op :type :ok, :value txn'))))
 
 (c/defclient Client InternalClient)

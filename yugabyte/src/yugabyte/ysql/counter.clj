@@ -13,9 +13,7 @@
   c/YSQLYbClient
 
   (setup-cluster! [this test c conn-wrapper]
-    ; for now psql postgres://mz_system@n1:33277
-    ; but should be run automatically, maybe once at beginning
-    (c/execute-notrans! c (j/drop-table-ddl table-name (:conditional? true)))
+    (c/execute-notrans! c (j/drop-table-ddl table-name {:conditional? true}))
     (c/execute-notrans! c (j/create-table-ddl table-name [[:id :int "PRIMARY KEY"]
                                                   [:count :int]]))
     (c/insert! c table-name {:id 0 :count 0}))
