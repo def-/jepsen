@@ -23,13 +23,6 @@
             [yugabyte.single-key-acid :as single-key-acid]
             [yugabyte.set :as set]
             [yugabyte.utils :refer :all]
-            [yugabyte.ycql.bank]
-            [yugabyte.ycql.bank-improved]
-            [yugabyte.ycql.counter]
-            [yugabyte.ycql.long-fork]
-            [yugabyte.ycql.multi-key-acid]
-            [yugabyte.ycql.set]
-            [yugabyte.ycql.single-key-acid]
             [yugabyte.ysql [append :as ysql.append]
                            [append-table :as ysql.append-table]
                            [default-value :as ysql.default-value]]
@@ -76,20 +69,6 @@
   Made as macro to re-evaluate client on every invocation."
   `(fn [~'opts] (assoc (~workload ~'opts) :client ~client-ctor)))
 
-(def workloads-ycql
-  "A map of workload names to functions that can take option maps and construct workloads."
-  #:ycql{:none            noop-test
-         :counter         (with-client counter/workload (yugabyte.ycql.counter/->CQLCounterClient))
-         :set             (with-client set/workload (yugabyte.ycql.set/->CQLSetClient))
-         :set-index       (with-client set/workload (yugabyte.ycql.set/->CQLSetIndexClient))
-         :bank            (with-client bank/workload-allow-neg (yugabyte.ycql.bank/->CQLBank))
-         :bank-inserts    (with-client bank-improved/workload-with-inserts (yugabyte.ycql.bank-improved/->CQLBankImproved))
-         ; Shouldn't be used until we support transactions with selects.
-         ; :bank-multitable (with-client bank/workload-allow-neg (yugabyte.ycql.bank/->CQLMultiBank))
-         :long-fork       (with-client long-fork/workload (yugabyte.ycql.long-fork/->CQLLongForkIndexClient))
-         :single-key-acid (with-client single-key-acid/workload (yugabyte.ycql.single-key-acid/->CQLSingleKey))
-         :multi-key-acid  (with-client multi-key-acid/workload (yugabyte.ycql.multi-key-acid/->CQLMultiKey))})
-
 (def workloads-ysql
   "A map of workload names to functions that can take option maps and construct workloads."
   #:ysql{:none               noop-test
@@ -106,36 +85,29 @@
          :sz.single-key-acid (with-client single-key-acid/workload (yugabyte.ysql.single-key-acid/->YSQLSingleKeyAcidClient))
          :sz.multi-key-acid  (with-client multi-key-acid/workload (yugabyte.ysql.multi-key-acid/->YSQLMultiKeyAcidClient))
          :sz.ol.append          (with-client append/workload-serializable (ysql.append/->Client :serializable :optimistic))
-         :sz.pl.append          (with-client append/workload-serializable (ysql.append/->Client :serializable :pessimistic))
          :sz.append-table    (with-client append/workload-serializable (ysql.append-table/->Client :serializable))
          :sz.default-value   (with-client default-value/workload (ysql.default-value/->Client))
          :rc.ol.append          (with-client append/workload-rc (ysql.append/->Client :read-committed :optimistic))
-         :rc.pl.append          (with-client append/workload-rc (ysql.append/->Client :read-committed :pessimistic))
          ; See https://docs.yugabyte.com/latest/architecture/transactions/isolation-levels/
          ; :snapshot-isolation maps to :repeatable_read SQL
          :si.ol.append          (with-client append/workload-si (ysql.append/->Client :repeatable-read :optimistic))
-         :si.pl.append          (with-client append/workload-si (ysql.append/->Client :repeatable-read :pessimistic))
          :si.bank            (with-client bank/workload-allow-neg (yugabyte.ysql.bank/->YSQLBankClient true :repeatable-read))
          :si.bank-multitable (with-client bank/workload-allow-neg (yugabyte.ysql.bank/->YSQLBankClient true :repeatable-read))
          :si.bank-contention (with-client bank-improved/workload-contention-keys (yugabyte.ysql.bank-improved/->YSQLBankContentionClient :repeatable-read))})
 
-(def workloads
-  (merge workloads-ycql workloads-ysql))
+(def workloads workloads-ysql)
 
 (def workload-options
   "For each workload, a map of workload options to all the values that option
   supports. Used for test-all."
   ; If we ever need additional options - merge them onto this base set
-  (merge (map-values workloads-ycql (fn [_] {}))
-         (map-values workloads-ysql (fn [_] {}))))
+  (map-values workloads-ysql (fn [_] {})))
 
 (def workload-options-expected-to-pass
   "Only workloads and options that we think should pass. Also used for
   test-all."
   (-> workload-options
-      (dissoc :ycql/bank-multitable
-              :ycql/none
-              :ysql/none
+      (dissoc :ysql/none
               :ysql/sleep
               :ysql/append-table)))
 

@@ -11,7 +11,6 @@
             [jepsen.control.net :as cn]
             [jepsen.control.util :as cu]
             [jepsen.os.debian :as debian]
-            [yugabyte.ycql.client :as ycql.client]
             [yugabyte.ysql.client :as ysql.client]
             [slingshot.slingshot :refer [try+ throw+]])
   (:import jepsen.os.debian.Debian
@@ -192,9 +191,6 @@
   (await-tservers test)
 
   (case (:api test)
-    :ycql
-    (ycql.client/await-setup node)
-
     :ysql
     (ysql.client/check-setup-successful node))
   :started)
