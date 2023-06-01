@@ -23,14 +23,14 @@
     (let [[id val] (:value op)]
       (case (:f op)
         :write
-        (do (c/update! op c table-name {:val val} ["id = ?" id])
+        (do (c/update! op c table-name {:val val} [(str "id = " id)])
             (assoc op :type :ok))
 
         :cas
         (let [[expected-val new-val] val
               res     (c/update! op c table-name
                                  {:val new-val}
-                                 ["id = ? AND val = ?" id expected-val])
+                                 [(str "id = " id " AND val = " expected-val)])
               applied (> (first res) 0)]
           (assoc op :type (if applied :ok :fail)))
 

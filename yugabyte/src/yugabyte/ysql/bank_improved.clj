@@ -17,8 +17,6 @@
 (defn- read-accounts-map
   "Read {id balance} accounts map from a unified bank table using force index flag"
   ([test op c]
-   (if (and enable-follower-reads (v/newer-or-equal? (:version test) minimal-follower-read-version))
-     (c/execute! c ["SET yb_read_from_followers = true"]))
    (->>
      (str "/*+ IndexOnlyScan(" table-name " " table-index ") */ SELECT id, balance FROM " table-name)
      (c/query op c)
@@ -64,8 +62,8 @@
             (let [b-from-after (- b-from-before amount)
                   b-to-after (+ b-to-before amount)]
               (do
-                (c/update! op c table-name {:balance b-from-after} ["id = ?" from])
-                (c/update! op c table-name {:balance b-to-after} ["id = ?" to])
+                (c/update! op c table-name {:balance b-from-after} [(str "id = " from)])
+                (c/update! op c table-name {:balance b-to-after} [(str "id = " to)])
                 (assoc op :type :ok))))))
 
       :delete
@@ -81,7 +79,7 @@
             (let [b-to-after-delete (+ b-to-before b-from-before)]
               (do
                 (c/execute! op c [(str "DELETE FROM " table-name " WHERE id = ?") from])
-                (c/update! op c table-name {:balance b-to-after-delete} ["id = ?" to])
+                (c/update! op c table-name {:balance b-to-after-delete} [(str "id = " to)])
                 (assoc op :type :ok :value {:from from, :to to, :amount b-from-before}))))))
 
       :insert
@@ -96,7 +94,7 @@
             :else
             (let [b-from-after (- b-from-before amount)]
               (do
-                (c/update! op c table-name {:balance b-from-after} ["id = ?" from])
+                (c/update! op c table-name {:balance b-from-after} [(str "id = " from)])
                 (c/insert! op c table-name {:id to :balance amount})
                 (assoc op :type :ok :value {:from from, :to to, :amount amount}))))))))
 

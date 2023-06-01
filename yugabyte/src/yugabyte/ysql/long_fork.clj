@@ -21,9 +21,8 @@
                                                   [:key2 :int]
                                                   [:val :int]]))
 
-    (c/execute-notrans! c (str "CREATE INDEX " index-name " ON " table-name " (key2) INCLUDE (val)"))
-    ; Right now it DOESN'T involve index - but we run it anyway
-    ; (c/assert-involves-index c (long-fork-index-query [1 2 3]) index-name)
+    (c/execute-notrans! c (str "CREATE INDEX " index-name " ON " table-name " (key2, val)"))
+    (c/assert-involves-index c (long-fork-index-query [1 2 3]) index-name)
     )
 
 

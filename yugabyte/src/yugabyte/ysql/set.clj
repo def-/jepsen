@@ -60,7 +60,7 @@
     (c/execute-notrans! c (j/create-table-ddl table-name [[:id :int "PRIMARY KEY"]
                                                   [:val :int]
                                                   [:grp :int]]))
-    (c/execute-notrans! c (str "CREATE INDEX " index-name " ON " table-name " (grp) INCLUDE (val)"))
+    (c/execute-notrans! c (str "CREATE INDEX " index-name " ON " table-name " (grp, val)"))
     (c/assert-involves-index c set-index-query index-name))
 
   (invoke-op! [this test op c conn-wrapper]

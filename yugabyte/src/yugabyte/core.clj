@@ -85,7 +85,7 @@
          :sz.single-key-acid (with-client single-key-acid/workload (yugabyte.ysql.single-key-acid/->YSQLSingleKeyAcidClient))
          :sz.multi-key-acid  (with-client multi-key-acid/workload (yugabyte.ysql.multi-key-acid/->YSQLMultiKeyAcidClient))
          :sz.ol.append          (with-client append/workload-serializable (ysql.append/->Client :serializable :optimistic))
-         :sz.append-table    (with-client append/workload-serializable (ysql.append-table/->Client :serializable))
+         :sz.append-table    (with-client append/workload-serializable (ysql.append-table/->Client))
          :sz.default-value   (with-client default-value/workload (ysql.default-value/->Client))
          :rc.ol.append          (with-client append/workload-rc (ysql.append/->Client :read-committed :optimistic))
          ; See https://docs.yugabyte.com/latest/architecture/transactions/isolation-levels/
@@ -273,6 +273,7 @@
                    :checker)
            (when (:yugabyte-ssh opts) (yugabyte-ssh-defaults))
            (when (:trace-cql opts) (trace-logging))
+           ;(trace-logging)
            {:client          (:client workload)
             :nemesis         (:nemesis nemesis)
             :generator       gen

@@ -50,8 +50,8 @@
                 allowed?      (or allow-negatives? (pos? b-from-after))]
             (if (not allowed?)
               (assoc op :type :fail, :error [:negative from b-from-after])
-              (do (c/update! op c table-name {:balance b-from-after} ["id = ?" from])
-                  (c/update! op c table-name {:balance b-to-after} ["id = ?" to])
+              (do (c/update! op c table-name {:balance b-from-after} [(str "id = " from)])
+                  (c/update! op c table-name {:balance b-to-after} [(str "id = " to)])
                   (assoc op :type :ok))))))))
 
 
@@ -77,7 +77,7 @@
                              (:total-amount test)
                              0)]
         (info "Creating table" a)
-        (c/execute! c (j/create-table-ddl acc-table-name [[:id :int "PRIMARY KEY"]
+        (c/execute-notrans! c (j/create-table-ddl acc-table-name [[:id :int "PRIMARY KEY"]
                                                           [:balance :bigint]]))
 
         (info "Populating account" a " (balance =" balance ")")
@@ -107,8 +107,8 @@
                 allowed?      (or allow-negatives? (pos? b-from-after))]
             (if (not allowed?)
               (assoc op :type :fail, :error [:negative from b-from-after])
-              (do (c/update! op c (str table-name from) {:balance b-from-after} ["id = ?" from])
-                  (c/update! op c (str table-name to) {:balance b-to-after} ["id = ?" to])
+              (do (c/update! op c (str table-name from) {:balance b-from-after} [(str "id = " from)])
+                  (c/update! op c (str table-name to) {:balance b-to-after} [(str "id = " to)])
                   (assoc op :type :ok))))))))
 
 
